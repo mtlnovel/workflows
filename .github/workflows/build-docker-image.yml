@@ -48,7 +48,7 @@ jobs:
           flavor: |
             latest=auto
             suffix=${{ steps.flavor.outputs.name }}
-          images: ghcr.io/tuneorg/${{ github.repository }}
+          images: ghcr.io/${{ github.repository }}
           tags: |
             ${{ steps.tags.outputs.name }}
             latest
