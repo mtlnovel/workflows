@@ -1,16 +1,10 @@
-name: Build & Push to container registry
+name: Build & Push to Docker Image container registry
 
 on:
-  release:
-    types: [created]
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-    paths:
-      - "Dockerfile"
+  workflow_call:
+    secrets:
+      BOT_TOKEN:
+        required: true
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
