@@ -32,10 +32,6 @@ jobs:
           username: tuneorg-bot
           password: ${{ secrets.BOT_TOKEN }}
 
-      - name: Extract repository name
-        id: repo
-        run: echo ::set-output name=name::${GITHUB_REPOSITORY#*/}
-
       - name: Extract tag name
         id: tags
         if: ${{ github.event_name == 'release' }}
@@ -52,7 +48,7 @@ jobs:
           flavor: |
             latest=auto
             suffix=${{ steps.flavor.outputs.name }}
-          images: ${{ steps.repo.outputs.name }}
+          images: ghcr.io/tuneorg/${{ github.repository }}
           tags: |
             ${{ steps.tags.outputs.name }}
             latest
