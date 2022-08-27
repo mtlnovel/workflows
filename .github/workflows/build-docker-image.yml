@@ -2,6 +2,12 @@ name: Build & Push Docker Image to container image registry
 
 on:
   workflow_call:
+    inputs:
+      ADD_FLAVOR:
+        description: "Whether to add flavor (only -dev atm) to the image tag"
+        type: boolean
+        required: false
+        default: true
     secrets:
       BOT_TOKEN:
         required: true
@@ -39,6 +45,7 @@ jobs:
 
       - name: Extract flavor
         id: flavor
+        if: ${{ inputs.username == true }}
         run: if [ "${{ github.event_name }}" = "release" ]; then echo ::set-output name=name::; else echo ::set-output name=name::-dev; fi
 
       - name: Generate Docker image metadata
