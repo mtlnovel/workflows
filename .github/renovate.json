@@ -1,4 +1,4 @@
 {
 	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
-	"extends": ["github>tuneorg/renovate-config"]
+	"extends": ["github>mtlnovel/renovate-config"]
 }
