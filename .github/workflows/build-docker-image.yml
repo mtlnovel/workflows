@@ -28,7 +28,7 @@ jobs:
 
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@dc7b9719a96d48369863986a06765841d7ea23f6 # tag=v2.0.0
+        uses: docker/setup-buildx-action@2b51285047da1547ffb1b2203d8be4c0af6b1f20 # v3.2.0
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@49ed152c8eca782a232dede0303416e8f356c37b # tag=v2.0.0
