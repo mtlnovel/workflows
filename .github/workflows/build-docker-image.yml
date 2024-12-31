@@ -1,42 +1,46 @@
-name: Build & Push Docker Image to container image registry
-
+name: Build & Push to container registry
 on:
   workflow_call:
     inputs:
-      ADD_FLAVOR:
-        description: "Whether to add flavor (only -dev atm) to the image tag"
-        type: boolean
+      TARGET_FILE:
+        description: "Dockerfile to build"
+        type: string
         required: false
-        default: true
-    secrets:
-      BOT_TOKEN:
-        required: true
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+        default: "Dockerfile"
+      TARGET_IMAGE_NAME:
+        description: "Docker image name"
+        type: string
+        required: false
+        default: ""
+      PLATFORMS:
+        description: "Docker image platforms"
+        type: string
+        required: false
+        default: "linux/amd64,linux/arm64/v8"
+      RUNNER:
+        description: "Runner to use"
+        type: string
+        required: false
+        default: 'ubuntu-latest'
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.RUNNER }}
     steps:
       - name: Check Out Repo
-        uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # tag=v3.0.2
-
-      #- name: Set up QEMU (We don't need QEMU, because we don't build images for platforms other than linux/amd64, which is our current native arch in our infra
-      #  uses: docker/setup-qemu-action@v1.2.0
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@dc7b9719a96d48369863986a06765841d7ea23f6 # tag=v2.0.0
+        uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@49ed152c8eca782a232dede0303416e8f356c37b # tag=v2.0.0
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         if: ${{ github.event_name != 'pull_request' }}
         with:
           registry: ghcr.io
-          username: tuneorg-bot
-          password: ${{ secrets.BOT_TOKEN }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract tag name
         id: tags
@@ -45,31 +49,36 @@ jobs:
 
       - name: Extract flavor
         id: flavor
-        if: ${{ inputs.username == true }}
         run: if [ "${{ github.event_name }}" = "release" ]; then echo ::set-output name=name::; else echo ::set-output name=name::-dev; fi
+      
+      - id: string
+        uses: ASzc/change-string-case-action@d0603cd0a7dd490be678164909f65c7737470a7f # v6
+        with:
+          string: ${{ github.repository }}
 
       - name: Generate Docker image metadata
-        uses: docker/metadata-action@69f6fc9d46f2f8bf0d5491e4aabe0bb8c6a4678a # tag=v4.0.1
+        uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81 # v5.5.1
         id: img_meta
         with:
           flavor: |
             latest=auto
-            suffix=${{ steps.flavor.outputs.name }}
-          images: ghcr.io/${{ github.repository }}
+          images: "ghcr.io/${{ inputs.TARGET_IMAGE_NAME || steps.string.outputs.lowercase }}"
           tags: |
-            ${{ steps.tags.outputs.name }}
-            latest
+            type=ref,event=branch
+            type=sha,prefix=,suffix=,format=short
 
+    
       - name: Build and push
         id: docker_build
-        uses: docker/build-push-action@c84f38281176d4c9cdb1626ffafcd6b3911b5d94 # tag=v3.1.1
+        uses: docker/build-push-action@5cd11c3a4ced054e52742c5fd54dca954e0edd85 # v6.7.0
         with:
+          file: ${{ inputs.TARGET_FILE }}
           context: ./
+          platforms: ${{ inputs.PLATFORMS }}
           tags: ${{ steps.img_meta.outputs.tags }}
           labels: ${{ steps.img_meta.outputs.labels }}
           push: ${{ github.event_name != 'pull_request' }}
           secrets: |
-            "GH_PKG_AUTH_TOKEN=${{ secrets.BOT_TOKEN }}"
-            "GITHUB_TOKEN=${{ secrets.BOT_TOKEN }}"
-          cache-from: type=gha,mode=max
-          cache-to: type=gha,mode=max
+            GITHUB_SHA=${{ github.sha }}
+            GH_PKG_TOKEN=${{ secrets.GH_TOKEN }}
+          
